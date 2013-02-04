@@ -1,0 +1,77 @@
+# Rasmus E. Benestad
+# 22.08.2010
+#
+# Reference for data:
+# Fetterer, F., K. Knowles, W. Meier, and M. Savoie. 2002, updated 2009. Sea Ice Index. Boulder, CO: National Snow and Ice Data Center. Digital media.
+# http://nsidc.org/data/g02135.html
+
+require(jpeg)
+
+ftp1 <- "ftp://sidads.colorado.edu/DATASETS/NOAA/G02135/north/daily/data/NH_seaice_extent_final.csv"
+ftp2 <- "ftp://sidads.colorado.edu/DATASETS/NOAA/G02135/north/daily/data/NH_seaice_extent_nrt.csv"
+image.name <- "http://www.realclimate.org/images//sea-ice-Hudson-Bay-Dec12-2009.jpg"
+
+col.names <- c("Year", "Month", "Day", "Extent", "Missing", "Source_Data")
+nisdc1 <- read.table(ftp1,sep=",",skip=2,col.names=col.names)
+nisdc2 <- read.table(ftp2,sep=",",skip=2,col.names=col.names)
+nisdc <- data.frame(Year=c(nisdc1$Year,nisdc2$Year),
+                    Month=c(nisdc1$Month,nisdc2$Month),
+                    Day=c(nisdc1$Day,nisdc2$Day),
+                    Extent=c(nisdc1$Extent,nisdc2$Extent),
+                    Missing=c(nisdc1$Missing,nisdc2$Missing))
+#Date <- nisdc$Year + (nisdc$Month - 1)/12 + (nisdc$Day - 1)/365.25
+Date <- (nisdc$Month - 1) + 12*(nisdc$Day - 1)/365.25
+Date[is.element(nisdc$Month,12) & is.element(nisdc$Day,31)] <- NA
+Date[c(FALSE,(diff(Date) < 0))] <-NA
+
+dev.new(width=10,height=8)
+par(bty="n",xaxt="n",yaxt="n",mar=rep(0,4),fig=c(0,1,0,1))
+
+plot(Date,nisdc$Extent,type="l",col="white",lwd=4,
+     xlab="Season",ylab="Sea ice extent")
+
+if (!file.exists("sea-ice-Hudson-Bay-Dec12-2009.jpg")) 
+  download.file(image.name,"sea-ice-Hudson-Bay-Dec12-2009.jpg")
+  
+img <- readJPEG("sea-ice-Hudson-Bay-Dec12-2009.jpg")
+rasterImage(img, 0, 0.95*min(nisdc$Extent,na.rm=TRUE),
+            12, 1.05*max(nisdc$Extent,na.rm=TRUE))
+
+lines(Date,nisdc$Extent,type="l",col="white",lwd=4)
+lines(Date,nisdc$Extent,type="l",col="grey",lwd=3)
+lines(c(0,12),rep(min(nisdc$Extent[!is.element(nisdc$Year,2012)],na.rm=TRUE),2),
+      col="red",lty=2)
+lines(Date[is.element(nisdc$Year,2012)],lwd=3,col="red",
+      nisdc$Extent[is.element(nisdc$Year,2012)])
+
+prevmin <- min(nisdc$Extent[!is.element(nisdc$Year,2012)],na.rm=TRUE)
+thismin <- min(nisdc$Extent[is.element(nisdc$Year,2012)],na.rm=TRUE)
+
+text(6,max(nisdc$Extent,na.rm=TRUE),
+     paste("Sea ice extent: ",min(nisdc$Year),'-',max(nisdc$Year)),
+     font=2,cex=1.5,col="white")
+text(6,0.97*max(nisdc$Extent,na.rm=TRUE),col="white",
+     "Source: http://nsidc.org/data/g02135.html")
+if (thismin < prevmin) text(6,0.94*max(nisdc$Extent,na.rm=TRUE),col="red",
+     "RECORD LOW")
+  
+text(12,10,"reference: Fettere, et. al. (2002), Sea Ice Index. Boulder, CO: National Snow and Ice Data Center. Digital media.",srt=90,pos=1,cex=0.6)
+text(0,1.03*prevmin,
+     "last record",pos=4,col="red",cex=0.6)
+
+text(0,thismin,"January-1st",pos=4)
+text(12,thismin,"December-31st",pos=2)
+
+legend(1,6,c("years 1978-2011","2012"),lwd=4,col=c("grey","red"),bty="n")
+
+text(0,max(nisdc$Extent,na.rm=TRUE),expression(paste("Area: ",10^6*km^2)),pos=4)
+
+for (i in 5:16) {
+  lines(c(0,0.1),rep(i,2),lwd=2)
+  text(0.12,i,i,pos=4)
+}
+
+dev2bitmap(file="nsidc.jpg",type="jpeg",res=150)
+
+
+
