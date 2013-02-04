@@ -3,6 +3,7 @@ Created on 5. sep. 2012
 
 @author: ermias
 '''
+
 # Import arcpy module
 import arcpy, arcgisscripting
 import time
